@@ -7,9 +7,9 @@ def main(args):
     dt.createData()
     dt.checkSorting()
     dt.sqlTitleAnswerInsert()
-    dt.writeToFile()
-    dt.answerCreateFile()
+    dt.writeToFile() 
     dt.insertQuestionsSQL()
+    dt.answerCreateFile()
 
     
 if __name__ == "__main__":
