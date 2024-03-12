@@ -198,7 +198,14 @@ class DataForSQL(db.DbConnectSQL):
             
         for line in self.data:
             if line[1] == "question" and line[5] == "Yes":
-                pass
+                key = line[0] - 2
+                valueIdMain = self.ids[int(key)]
+                valueIdSub = self.ids[int(line[0])]
+                sql = "UPDATE efes.test_abdyushev_answer SET question_id_to_hide = %s WHERE question_id = %s"
+                val = (valueIdSub, valueIdMain)
+                self.mycursor.execute(sql, val)
+                self.mydb.commit()
+                
         
         
         
