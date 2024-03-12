@@ -5,6 +5,7 @@ class DataForSQL(db.DbConnectSQL):
     def __init__(self) -> None:
         super().__init__()
         self.data = []
+        self.ids = {}
         
     
     def createData(self):
@@ -93,14 +94,14 @@ class DataForSQL(db.DbConnectSQL):
                     numberOfQuestion += 1
                     
     def insertQuestionsSQL(self):
-        ids = {}
-        sql = "INSERT INTO efes.test_abdyushev_questions (sorting, questionnaire_id, name_rus, block_id, section_id, x5cat, x5subcat, color_group) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        
+        sql = "INSERT INTO efes.test_abdyushev_questions (sorting, project_id, questionnaire_id, name_rus, block_id, section_id, x5cat, x5subcat, color_group) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
         for line in self.data:
             if line[1] in ["title", "question"]:
                 desc = line[4] if line[4] not in ['None', 'null', 'Null'] else None
-                values = (int(line[2]), int(159), str(line[3]), int(line[10]) ,int(line[11]), int(line[12]), int(line[13]), line[8])
+                values = (int(line[2]), int(17), int(159), str(line[3]), int(line[10]) ,int(line[11]), int(line[12]), int(line[13]), line[8])
                 self.mycursor.execute(sql, values)
-                ids.update({int(line[0]): self.mycursor.lastrowid})
+                self.ids.update({int(line[0]): self.mycursor.lastrowid})
                 self.mydb.commit()
                 # print(desc)
                 
@@ -117,6 +118,23 @@ class DataForSQL(db.DbConnectSQL):
             if line[4] not in ['None', 'null']:
                 print(line[4], " ", int(line[2]))
                 val = (str(line[4]), int(line[2]))
+                self.mycursor.execute(sql, val)
+                self.mydb.commit()
+                
+        sql = "UPDATE efes.test_abdyushev_questions SET is_section_name = %s WHERE sorting = %s"
+        for line in self.data:
+            if line[1] in ["title"]:
+                val = (1, int(line[2]))
+                self.mycursor.execute(sql, val)
+                self.mydb.commit()
+                
+        sql = "UPDATE efes.test_abdyushev_questions SET is_hidden = %s, is_mandatory=%s WHERE sorting = %s"
+        for line in self.data:
+            if line[1] in ["question"]:
+                if line[5] == "No":
+                    val = (0, 1, int(line[2]))
+                else:
+                    val = (1, 0, int(line[2]))
                 self.mycursor.execute(sql, val)
                 self.mydb.commit()
             
@@ -137,22 +155,30 @@ class DataForSQL(db.DbConnectSQL):
                     if c != "•":
                         subString += c
                     else:
-                        data.append((sorting, self.data[line[0]-1][2], subString.strip().replace(" .", "")))
+                        key = int(line[0]-1)
+                        data.append((sorting, self.data[line[0]-1][2], subString.strip().replace(" .", ""), self.ids[key]))
                         sorting += 20
                         subString = ""
-                data.append((sorting, self.data[line[0]-1][2], subString.strip()))
+                # print(line[0]-1)
+                key = int(line[0]-1)
+                
+                data.append((sorting, self.data[line[0]-1][2], subString.strip(), self.ids[key]))
                 
                 
                 for d in data:
+                    
                     txt = d[2]
                     if re.search(r'\d', d[2][-4:]):
-                        temp = int("".join(re.findall(r'\d+', d[2][-4:])))
+                        score = int("".join(re.findall(r'\d+', d[2][-4:])))
                         txt = d[2][0:-4]
-                        # print(temp)
+                        if len(d) < 4: print("hello", d[1])
                     else:
-                        temp = None
-                    answerData.append((d[0], d[1],txt,temp))
+                        score = None
+                    
+                    answerData.append((d[0], d[1],txt,score, d[3]))
         
+        print(self.ids)
+        # print(self.ids.keys())
         with open("answers.txt", "w") as file1:
             for line in answerData:
                 delim = ";"
@@ -160,5 +186,19 @@ class DataForSQL(db.DbConnectSQL):
                 res = res + "\n"
                 # print(res)
                 file1.writelines(res)
+                
+        self.insertAnswersSQL(answerData)
+                
+    def insertAnswersSQL(self, answerData):
+        sql = "INSERT INTO efes.test_abdyushev_answer (sorting, question_id, questionnaire_id, score, name_rus) VALUES (%s, %s, %s, %s, %s)"
+        for line in answerData:
+            val = (int(line[0]), int(line[4]), int(159), line[3], str(line[2]))
+            self.mycursor.execute(sql, val)
+            self.mydb.commit()
+            
+        for line in self.data:
+            if line[1] == "question" and line[5] == "Yes":
+                pass
+        
         
         
