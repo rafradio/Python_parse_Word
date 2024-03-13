@@ -68,9 +68,9 @@ class DataForSQL(db.DbConnectSQL):
         for line in self.data:
             if line[1] == "title":
                 subcat = 0
-                u = line[3].replace(".","").rstrip()
-                val = str(u)
-                # val = "%" + str(u) + "%"
+                # u = line[3].replace(".","").rstrip()
+                val = str(line[3].rstrip()[:-1])
+                val = "%" + str(val) + "%"
                 sql = "SELECT id FROM section WHERE project_id = 17 AND name_rus LIKE '" + val + "'"
                 self.mycursor.execute(sql)
                 row = [item[0] for item in self.mycursor.fetchall()]
@@ -80,8 +80,8 @@ class DataForSQL(db.DbConnectSQL):
                 self.data[line[0]].append(section)
                 self.data[line[0]].append(section)
                 self.data[line[0]].append(0)
-                print(val)
-                print(line[5])
+                # print(val)
+                # print(line[5])
             elif line[1] == "question":
                 subcat += 2
                 self.data[line[0]].append(section)
@@ -89,23 +89,23 @@ class DataForSQL(db.DbConnectSQL):
                 self.data[line[0]].append(section)
                 self.data[line[0]].append(subcat)
                 if line[5] == "No":
-                    print(line[5])
+                    # print(line[5])
                     self.data[line[0]][3] = str(numberOfQuestion) + ". " + line[3]
                     numberOfQuestion += 1
                     
     def insertQuestionsSQL(self):
         
-        sql = "INSERT INTO efes.test_abdyushev_questions (sorting, project_id, questionnaire_id, name_rus, block_id, section_id, x5cat, x5subcat, color_group) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        sql = "INSERT INTO efes.question (sorting, project_id, questionnaire_id, name_rus, block_id, section_id, x5cat, x5subcat, color_group) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
         for line in self.data:
             if line[1] in ["title", "question"]:
                 desc = line[4] if line[4] not in ['None', 'null', 'Null'] else None
-                values = (int(line[2]), int(17), int(159), str(line[3]), int(line[10]) ,int(line[11]), int(line[12]), int(line[13]), line[8])
+                values = (int(line[2]), int(17), int(169), str(line[3]), int(line[10]) ,int(line[11]), int(line[12]), int(line[13]), line[8])
                 self.mycursor.execute(sql, values)
                 self.ids.update({int(line[0]): self.mycursor.lastrowid})
                 self.mydb.commit()
                 # print(desc)
                 
-        sql = "UPDATE efes.test_abdyushev_questions SET max_score = %s WHERE sorting = %s"
+        sql = "UPDATE efes.question SET max_score = %s WHERE sorting = %s"
         for line in self.data:
             if line[7].isdigit():
                 # print(line[7])
@@ -113,22 +113,22 @@ class DataForSQL(db.DbConnectSQL):
                 self.mycursor.execute(sql, val)
                 self.mydb.commit()
                 
-        sql = "UPDATE efes.test_abdyushev_questions SET test_abdyushev_questions.describe = %s WHERE sorting = %s"
+        sql = "UPDATE efes.question SET question.describe = %s WHERE sorting = %s"
         for line in self.data:
             if line[4] not in ['None', 'null']:
-                print(line[4], " ", int(line[2]))
+                # print(line[4], " ", int(line[2]))
                 val = (str(line[4]), int(line[2]))
                 self.mycursor.execute(sql, val)
                 self.mydb.commit()
                 
-        sql = "UPDATE efes.test_abdyushev_questions SET is_section_name = %s WHERE sorting = %s"
+        sql = "UPDATE efes.question SET is_section_name = %s WHERE sorting = %s"
         for line in self.data:
             if line[1] in ["title"]:
                 val = (1, int(line[2]))
                 self.mycursor.execute(sql, val)
                 self.mydb.commit()
                 
-        sql = "UPDATE efes.test_abdyushev_questions SET is_hidden = %s, is_mandatory=%s WHERE sorting = %s"
+        sql = "UPDATE efes.question SET is_hidden = %s, is_mandatory=%s WHERE sorting = %s"
         for line in self.data:
             if line[1] in ["question"]:
                 if line[5] == "No":
@@ -149,6 +149,7 @@ class DataForSQL(db.DbConnectSQL):
                 string = line[3]
                 for d in delimiters:
                     string = string.replace(d, "•")
+                # string = string.replace("", "")
                 data = []
                 subString=""
                 for c in string[1:]:
@@ -190,18 +191,19 @@ class DataForSQL(db.DbConnectSQL):
         self.insertAnswersSQL(answerData)
                 
     def insertAnswersSQL(self, answerData):
-        sql = "INSERT INTO efes.test_abdyushev_answer (sorting, question_id, questionnaire_id, score, name_rus) VALUES (%s, %s, %s, %s, %s)"
+        sql = "INSERT INTO efes.answer (sorting, question_id, questionnaire_id, score, name_rus) VALUES (%s, %s, %s, %s, %s)"
         for line in answerData:
-            val = (int(line[0]), int(line[4]), int(159), line[3], str(line[2]))
+            val = (int(line[0]), int(line[4]), int(169), line[3], str(line[2]))
             self.mycursor.execute(sql, val)
             self.mydb.commit()
             
         for line in self.data:
             if line[1] == "question" and line[5] == "Yes":
+                print("ключи ", line[0])
                 key = line[0] - 2
                 valueIdMain = self.ids[int(key)]
                 valueIdSub = self.ids[int(line[0])]
-                sql = "UPDATE efes.test_abdyushev_answer SET question_id_to_hide = %s WHERE question_id = %s"
+                sql = "UPDATE efes.answer SET question_id_to_hide = %s WHERE question_id = %s"
                 val = (valueIdSub, valueIdMain)
                 self.mycursor.execute(sql, val)
                 self.mydb.commit()
