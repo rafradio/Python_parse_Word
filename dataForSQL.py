@@ -9,7 +9,7 @@ class DataForSQL(db.DbConnectSQL):
         
     
     def createData(self):
-        path = r'C:\Users\Abdyushev.R\Documents\VB_word\parse_table\wordData.txt'
+        path = r'C:\Users\Abdyushev.R\Documents\VB_word\parse_table\wordData1.txt'
         with open(path) as f:
             rawdata = [line.rstrip()[1:-1].split(";") for line in f]
         self.data = list(map(lambda x: [int(x[0]), str(x[1]), int(x[2]), str(x[3]), str(x[4]), str(x[5]), str(x[6]), str(x[7])], rawdata))
@@ -20,10 +20,10 @@ class DataForSQL(db.DbConnectSQL):
         previous = 0
         previousSorting = self.data[0][2]
         for arr in self.data:
-            if arr[3].startswith("*"):
-                self.data[arr[0]].append("green")
-            elif arr[3].startswith("**"):
+            if arr[3].startswith("**"):
                 self.data[arr[0]].append("orange")
+            elif arr[3].startswith("*"):
+                self.data[arr[0]].append("green")
             else:
                 self.data[arr[0]].append(None)
                 
@@ -69,13 +69,20 @@ class DataForSQL(db.DbConnectSQL):
             if line[1] == "title":
                 subcat = 0
                 # u = line[3].replace(".","").rstrip()
-                val = str(line[3].rstrip()[:-1])
-                val = "%" + str(val) + "%"
+                
+                # val = str(line[3].rstrip()[:-1]) if len(line[3]) < 10 else str(line[3].rstrip()[:10])
+                val = str(line[3].rstrip()) 
+                print(val)
+                val = ''.join(filter(str.isalpha, val))
+                # val = "%" + str(val) + "%"
+                val = str(val)
                 sql = "SELECT id FROM section WHERE project_id = 17 AND name_rus LIKE '" + val + "'"
+                # sql = "SELECT id FROM section WHERE project_id = 17 AND name_rus = '" + val + "'"
                 self.mycursor.execute(sql)
                 row = [item[0] for item in self.mycursor.fetchall()]
                 if len(row) != 0:
                     section = row[0]
+                else: section = 10
                 self.data[line[0]].append(section)
                 self.data[line[0]].append(section)
                 self.data[line[0]].append(section)
@@ -91,6 +98,7 @@ class DataForSQL(db.DbConnectSQL):
                 if line[5] == "No":
                     # print(line[5])
                     self.data[line[0]][3] = str(numberOfQuestion) + ". " + line[3]
+                    self.data[line[0]][3] = line[3]
                     numberOfQuestion += 1
                     
     def insertQuestionsSQL(self):
@@ -99,7 +107,7 @@ class DataForSQL(db.DbConnectSQL):
         for line in self.data:
             if line[1] in ["title", "question"]:
                 desc = line[4] if line[4] not in ['None', 'null', 'Null'] else None
-                values = (int(line[2]), int(17), int(169), str(line[3]), int(line[10]) ,int(line[11]), int(line[12]), int(line[13]), line[8])
+                values = (int(line[2]), int(17), int(165), str(line[3]), int(line[10]) ,int(line[11]), int(line[12]), int(line[13]), line[8])
                 self.mycursor.execute(sql, values)
                 self.ids.update({int(line[0]): self.mycursor.lastrowid})
                 self.mydb.commit()
@@ -170,9 +178,16 @@ class DataForSQL(db.DbConnectSQL):
                     
                     txt = d[2]
                     if re.search(r'\d', d[2][-4:]):
-                        score = int("".join(re.findall(r'\d+', d[2][-4:])))
-                        txt = d[2][0:-4]
-                        if len(d) < 4: print("hello", d[1])
+                        txtMinus = d[2][-4:]
+                        if self.data[line[0]-1][7].isdigit(): 
+                            score = int("".join(re.findall(r'\d+', d[2][-4:])))
+                            if txtMinus.find("-") > -1: score = score * (-1)
+                            # if isinstance(self.data[line[0]-1][7], int):
+                            if score <= int(self.data[line[0]-1][7]):
+                                txt = d[2][0:-4]
+                                if len(d) < 4: print("hello", d[1])
+                            else: score = None
+                        else: score = None
                     else:
                         score = None
                     
@@ -193,9 +208,10 @@ class DataForSQL(db.DbConnectSQL):
     def insertAnswersSQL(self, answerData):
         sql = "INSERT INTO efes.answer (sorting, question_id, questionnaire_id, score, name_rus) VALUES (%s, %s, %s, %s, %s)"
         for line in answerData:
-            val = (int(line[0]), int(line[4]), int(169), line[3], str(line[2]))
-            self.mycursor.execute(sql, val)
-            self.mydb.commit()
+            if line[2] != "":
+                val = (int(line[0]), int(line[4]), int(165), line[3], str(line[2]))
+                self.mycursor.execute(sql, val)
+                self.mydb.commit()
             
         for line in self.data:
             if line[1] == "question" and line[5] == "Yes":
